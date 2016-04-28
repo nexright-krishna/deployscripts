@@ -159,7 +159,7 @@ deploy_simple () {
     deploy_container ${MY_CONTAINER_NAME}
     local RESULT=$?
     if [ $RESULT -ne 0 ]; then
-        log_and_echo "$ERROR" "Error encountered with simple build strategy for ${CONTAINER_NAME}_${BUILD_NUMBER}"
+        log_and_echo "$ERROR" "Error encountered with simple build strategy for ${CONTAINER_NAME}"
         ${EXT_DIR}/utilities/sendMessage.sh -l bad -m "Failed deployment of ${MY_CONTAINER_NAME}. $(get_error_info)"
         exit $RESULT
     fi
@@ -168,7 +168,7 @@ deploy_simple () {
 deploy_red_black () {
     log_and_echo "$LABEL" "Example red_black container deploy "
     # deploy new version of the application
-    local MY_CONTAINER_NAME="${CONTAINER_NAME}_${BUILD_NUMBER}"
+    local MY_CONTAINER_NAME="${CONTAINER_NAME}"
     local FLOATING_IP=""
     local IP_JUST_FOUND=""
     deploy_container ${MY_CONTAINER_NAME}
@@ -191,7 +191,7 @@ deploy_red_black () {
     fi
 
     # check to see that I obtained a floating IP address
-    #ice inspect ${CONTAINER_NAME}_${BUILD_NUMBER} > inspect.log
+    #ice inspect ${CONTAINER_NAME} > inspect.log
     #FLOATING_IP=$(cat inspect.log | grep "PublicIpAddress" | awk '{print $2}')
     if [ "${FLOATING_IP}" = '""' ] || [ -z "${FLOATING_IP}" ]; then
         log_and_echo "Check for the free IP, will attempt to reuse existing IP"
@@ -219,11 +219,11 @@ deploy_red_black () {
         else
             log_and_echo "Reuse an existing IP address $FLOATING_IP"
         fi
-        ice_retry ip bind ${FLOATING_IP} ${CONTAINER_NAME}_${BUILD_NUMBER} 2> /dev/null
+        ice_retry ip bind ${FLOATING_IP} ${CONTAINER_NAME} 2> /dev/null
         RESULT=$?
         if [ $RESULT -ne 0 ]; then
             cat iceretry.log
-            log_and_echo "$ERROR" "Failed to bind ${FLOATING_IP} to ${CONTAINER_NAME}_${BUILD_NUMBER} "
+            log_and_echo "$ERROR" "Failed to bind ${FLOATING_IP} to ${CONTAINER_NAME} "
             log_and_echo "Unsetting TEST_URL"
             export TEST_URL=""
             dump_info
@@ -239,7 +239,7 @@ deploy_red_black () {
         echo "export TEST_PORT="$(echo $PORT | sed 's/,/ /g' |  awk '{print $1;}')"" >> "${DEPLOY_PROPERTY_FILE}"
     fi
  
-    log_and_echo "${green}Public IP address of ${CONTAINER_NAME}_${BUILD_NUMBER} is ${FLOATING_IP} and the TEST_URL is ${TEST_URL} ${no_color}"
+    log_and_echo "${green}Public IP address of ${CONTAINER_NAME} is ${FLOATING_IP} and the TEST_URL is ${TEST_URL} ${no_color}"
 }
 
 clean() {
@@ -252,12 +252,12 @@ clean() {
     local containerName=""
     if [ "$USE_ICE_CLI" != "1" ]; then
         # if the IC_COMMAND is cf ic, then it need to use discovered public IP address
-        log_and_echo "Check if it is already discovered a PublicIpAddress during run container ${CONTAINER_NAME}_${BUILD_NUMBER}"
+        log_and_echo "Check if it is already discovered a PublicIpAddress during run container ${CONTAINER_NAME}"
         local RC=0
         local retries=0
         while [ $retries -lt 6 ]; do
             sleep 10
-            ice_retry_save_output inspect ${CONTAINER_NAME}_${BUILD_NUMBER} 2> /dev/null
+            ice_retry_save_output inspect ${CONTAINER_NAME} 2> /dev/null
             RESULT=$?
             if [ $RESULT -eq 0 ]; then
                 local FOUND_FLOATING_IP=$(grep "PublicIpAddress" iceretry.log | awk '{print $2}')
@@ -268,10 +268,10 @@ clean() {
                     log_and_echo "New discovered ip is ${NEW_DISCOVERED_IP}"
                     break
                 else
-                    log_and_echo "$WARN" "no any PublicIpAddress discovered for ${CONTAINER_NAME}_${BUILD_NUMBER}, Sleep 10 sec and try again."
+                    log_and_echo "$WARN" "no any PublicIpAddress discovered for ${CONTAINER_NAME}, Sleep 10 sec and try again."
                 fi
             else
-               log_and_echo "$WARN" "'$IC_COMMAND inspect ${CONTAINER_NAME}_${BUILD_NUMBER}' command failed with return code ${RESULT}" 
+               log_and_echo "$WARN" "'$IC_COMMAND inspect ${CONTAINER_NAME}' command failed with return code ${RESULT}" 
                log_and_echo "$DEBUGGING" `cat iceretry.log`
                break
             fi
@@ -316,14 +316,14 @@ clean() {
                     sleep 2
                 fi
                 # bind it to our new container
-                ice_retry ip bind ${REQUESTED_FLOATING_IP} ${CONTAINER_NAME}_${BUILD_NUMBER} 2> /dev/null
+                ice_retry ip bind ${REQUESTED_FLOATING_IP} ${CONTAINER_NAME} 2> /dev/null
                 RESULT=$?
                 if [ $RESULT -ne 0 ]; then
-                    log_and_echo "$ERROR" "'$IC_COMMAND ip bind ${REQUESTED_FLOATING_IP} ${CONTAINER_NAME}_${BUILD_NUMBER}' command failed with return code ${RESULT}"
+                    log_and_echo "$ERROR" "'$IC_COMMAND ip bind ${REQUESTED_FLOATING_IP} ${CONTAINER_NAME}' command failed with return code ${RESULT}"
                 else
                     # save that it worked, so we don't try to reclaim a different one
                     FLOATING_IP=${REQUESTED_FLOATING_IP}
-                    log_and_echo "Requested ip ${FLOATING_IP} was successfully bound to ${CONTAINER_NAME}_${BUILD_NUMBER}"
+                    log_and_echo "Requested ip ${FLOATING_IP} was successfully bound to ${CONTAINER_NAME}"
                 fi
             fi
         fi
@@ -402,10 +402,10 @@ clean() {
                         fi
                         sleep 2
                     fi
-                    ice_retry ip bind ${FLOATING_IP} ${CONTAINER_NAME}_${BUILD_NUMBER} 2> /dev/null
+                    ice_retry ip bind ${FLOATING_IP} ${CONTAINER_NAME} 2> /dev/null
                     RESULT=$?
                     if [ $RESULT -ne 0 ]; then
-                        log_and_echo "$WARN" "'$IC_COMMAND ip bind ${FLOATING_IP} ${CONTAINER_NAME}_${BUILD_NUMBER}' command failed with return code ${RESULT}"
+                        log_and_echo "$WARN" "'$IC_COMMAND ip bind ${FLOATING_IP} ${CONTAINER_NAME}' command failed with return code ${RESULT}"
                         log_and_echo "$WARN" "Cleaning up previous deployments is not completed"
                         return 0
                     fi
@@ -467,7 +467,7 @@ else
 fi
 
 if [ ! -z ${DEPLOY_PROPERTY_FILE} ]; then
-    echo "export SINGLE_CONTAINER_NAME="${CONTAINER_NAME}_${BUILD_NUMBER}"" >> "${DEPLOY_PROPERTY_FILE}"
+    echo "export SINGLE_CONTAINER_NAME="${CONTAINER_NAME}"" >> "${DEPLOY_PROPERTY_FILE}"
 fi
 
 # set the memory size
