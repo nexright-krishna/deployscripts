@@ -155,7 +155,7 @@ deploy_container() {
 }
 
 deploy_simple () {
-    local MY_CONTAINER_NAME="${CONTAINER_NAME}_${BUILD_NUMBER}"
+    local MY_CONTAINER_NAME="${CONTAINER_NAME}"
     deploy_container ${MY_CONTAINER_NAME}
     local RESULT=$?
     if [ $RESULT -ne 0 ]; then
